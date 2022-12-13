@@ -1,0 +1,134 @@
+version: '3'
+env:
+  TERRAFORM_VERSION: ""
+  GOBIN: "{{.BUILD_HARNESS_PATH}}/vendor/"
+vars:
+  TMP: /tmp
+  TERRAFORM: "{{.BUILD_HARNESS_PATH}}/vendor/terraform"
+  TERRAFORM_VERSION:
+    sh: |
+      if [[ -z ${TERRAFORM_VERSION} ]]; then
+        curl -sL https://releases.hashicorp.com/terraform/index.json |  jq -r '.versions[].builds[].version' | egrep '[0-9]\.[0-9]{1,2}\.[0-9]{1,2}$' | tail -1
+      else
+        echo ${TERRAFORM_VERSION}
+      fi
+  TERRAFORM_URL: "https://releases.hashicorp.com/terraform/{{.TERRAFORM_VERSION}}/terraform_{{.TERRAFORM_VERSION}}_{{.OS}}_{{.BUILD_HARNESS_ARCH}}.zip"
+  TFSEC: "{{.BUILD_HARNESS_PATH}}/vendor/tfsec"
+  TERRASCAN: "{{.BUILD_HARNESS_PATH}}/vendor/terrascan"
+  TERRASCAN_URL:
+    sh: |
+      if [ "{{.OS}}" == "darwin" ]; then
+        curl -L https://api.github.com/repos/tenable/terrascan/releases/latest 2>/dev/null| jq -r '.assets[].browser_download_url' | egrep 'Darwin' | tail -1
+      else
+        curl -L https://api.github.com/repos/tenable/terrascan/releases/latest 2>/dev/null| jq -r '.assets[].browser_download_url' | egrep 'Linux' | tail -1
+      fi
+
+tasks:
+  install:
+    cmds:
+      - |
+       if [ ! -x {{.TERRAFORM}} ]; then
+          echo -n "[+] Installing Terraform {{.TERRAFORM_VERSION}}..."
+          curl '-#' -fL -o {{.TMP}}/terraform.zip {{.TERRAFORM_URL}} 2>/dev/null
+          unzip -q -d {{.TMP}}/ {{.TMP}}/terraform.zip
+          mv {{.TMP}}/terraform {{.TERRAFORM}}
+          rm -f {{.TMP}}/terraform.zip
+          echo "done"
+       fi
+    summary: |
+      # Install terraform binary
+    silent: true
+    desc: "Install terraform binary"
+    preconditions:
+      - sh: "test -f `which curl`"
+        msg: "curl not installed"
+      - sh: "test -f `which jq`"
+        msg: "jq not installed"
+      - sh: "test -f `which unzip`"
+        msg: "unzip not installed"
+  lint:
+    deps:
+      - install
+    desc: "Lint checks terraform code"
+    silent: true
+    summary: |
+      # Lint checks terraform code
+    cmds:
+      - |
+        if [ {{.OS}} == "darwin" ]; then
+          FAIL=`{{.TERRAFORM}} fmt -write=false | xargs -n 1 printf '\t- %s\n'`
+          [ -z $FAIL ] || task terraform:fmt
+        else
+          FAIL=`{{.TERRAFORM}} fmt -write=false |  xargs --no-run-if-empty -n 1 printf '\t- %s\n'`
+          [ -z $FAIL ] || task terraform:fmt
+        fi
+  fmt:
+    deps:
+      - install
+    desc: "Formats terraform code"
+    silent: true
+    summary: |
+      # Formats terraform code
+    cmds:
+      - |
+        echo "[+] Formatting terraform code"
+        {{.TERRAFORM}} fmt --recursive .
+  validate:
+    deps:
+      - install
+    desc: "Validate terraform configuration"
+    silent: true
+    summary: |
+      # Validate terraform configuration
+    cmds:
+      - |
+        {{.TERRAFORM}} validate
+  tfsec:install:
+    desc: "Use tfsec to security scan terraform code"
+    silent: true
+    summary: |
+      # Scans terraform code for security issues
+    cmds:
+      - |
+        if [ ! -x {{.TFSEC}} ]; then
+          echo 	-n "[+] Installing tfsec..."
+          go install github.com/aquasecurity/tfsec/cmd/tfsec@latest
+          echo "done"
+        fi
+    preconditions:
+      - sh: "test -f `which go`"
+        msg: "go not installed"
+  tfsec:scan:
+    deps:
+      - tfscan:install
+    desc: "Use tfsec to security scan terraform code"
+    silent: true
+    summary: |
+      # Scans terraform code for security issues
+    cmds:
+      - |
+        {{.TFSEC}} .
+  terrascan:install:
+    desc: "Install terrascan"
+    silent: true
+    summary: |
+      # Install terrascan
+    cmds:
+      - |
+        if [ ! -x {{.TERRASCAN}} ]; then
+          echo 	-n "[+] Installing terrascan..."
+          curl -L {{.TERRASCAN_URL}} > {{.TMP}}/terrascan.tar.gz 2>/dev/null
+          tar -xOf {{.TMP}}/terrascan.tar.gz terrascan > {{.TERRASCAN}} && rm {{.TMP}}/terrascan.tar.gz
+          chmod +x {{.TERRASCAN}}
+          echo "done"
+        fi
+  terrascan:scan:
+    deps:
+      - terrascan:install
+    desc: "Run terrascan scan"
+    silent: true
+    summary: |
+      # Run terrascan scan
+    cmds:
+      - |
+        {{.TERRASCAN}} scan
