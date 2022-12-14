@@ -1,7 +1,6 @@
 version: '3'
 env:
   TERRAFORM_VERSION: ""
-  GOBIN: "{{.BUILD_HARNESS_PATH}}/vendor/"
 vars:
   TMP: /tmp
   TERRAFORM: "{{.BUILD_HARNESS_PATH}}/vendor/terraform"
@@ -91,7 +90,7 @@ tasks:
       - |
         if [ ! -x {{.TFSEC}} ]; then
           echo 	"[+] Installing tfsec..."
-          go install github.com/aquasecurity/tfsec/cmd/tfsec@latest
+          GOBIN={{.BUILD_HARNESS_PATH}}/vendor go install github.com/aquasecurity/tfsec/cmd/tfsec@latest
         fi
     preconditions:
       - sh: "test -f `which go`"
@@ -105,7 +104,8 @@ tasks:
       # Scans terraform code for security issues
     cmds:
       - |
-        {{.TFSEC}} .
+        echo 	"[+] Running tfsec..."
+        {{.TFSEC}} {{.ROOT_DIR}}
   terrascan:install:
     desc: "Install terrascan"
     silent: true
@@ -128,4 +128,5 @@ tasks:
       # Run terrascan scan
     cmds:
       - |
-        {{.TERRASCAN}} scan -i terraform --non-recursive
+        echo 	"[+] Running terrascan..."
+        {{.TERRASCAN}} scan -i terraform -d {{.ROOT_DIR}} --non-recursive
