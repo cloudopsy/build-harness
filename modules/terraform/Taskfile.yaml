@@ -100,7 +100,7 @@ tasks:
         msg: "go not installed"
   tfsec:scan:
     deps:
-      - tfscan:install
+      - tfsec:install
     desc: "Use tfsec to security scan terraform code"
     silent: true
     summary: |
