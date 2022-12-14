@@ -12,7 +12,12 @@ vars:
   BUILD_HARNESS_ARCH:
     sh: uname -m | sed 's/x86_64/amd64/g'
   BUILD_HARNESS_PATH:
-    sh: echo "{{.ROOT_DIR}}"
+    sh: |
+      if [ ! -z ${BUILD_HARNESS_PATH} ]; then
+        echo "${BUILD_HARNESS_PATH}"
+      else
+        echo "{{.ROOT_DIR}}"
+      fi
   BUILD_HARNESS_OS:
     sh: echo "{{.OS}}"
 tasks:
