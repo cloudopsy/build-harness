@@ -28,12 +28,11 @@ tasks:
     cmds:
       - |
        if [ ! -x {{.TERRAFORM}} ]; then
-          echo -n "[+] Installing Terraform {{.TERRAFORM_VERSION}}..."
+          echo "[+] Installing Terraform {{.TERRAFORM_VERSION}}..."
           curl '-#' -fL -o {{.TMP}}/terraform.zip {{.TERRAFORM_URL}} 2>/dev/null
           unzip -q -d {{.TMP}}/ {{.TMP}}/terraform.zip
           mv {{.TMP}}/terraform {{.TERRAFORM}}
           rm -f {{.TMP}}/terraform.zip
-          echo "done"
        fi
     summary: |
       # Install terraform binary
@@ -91,9 +90,8 @@ tasks:
     cmds:
       - |
         if [ ! -x {{.TFSEC}} ]; then
-          echo 	-n "[+] Installing tfsec..."
+          echo 	"[+] Installing tfsec..."
           go install github.com/aquasecurity/tfsec/cmd/tfsec@latest
-          echo "done"
         fi
     preconditions:
       - sh: "test -f `which go`"
@@ -116,11 +114,10 @@ tasks:
     cmds:
       - |
         if [ ! -x {{.TERRASCAN}} ]; then
-          echo 	-n "[+] Installing terrascan..."
+          echo 	"[+] Installing terrascan..."
           curl -L {{.TERRASCAN_URL}} > {{.TMP}}/terrascan.tar.gz 2>/dev/null
           tar -xOf {{.TMP}}/terrascan.tar.gz terrascan > {{.TERRASCAN}} && rm {{.TMP}}/terrascan.tar.gz
           chmod +x {{.TERRASCAN}}
-          echo "done"
         fi
   terrascan:scan:
     deps:
@@ -131,4 +128,4 @@ tasks:
       # Run terrascan scan
     cmds:
       - |
-        {{.TERRASCAN}} scan
+        {{.TERRASCAN}} scan -i terraform --non-recursive
