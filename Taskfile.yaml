@@ -9,16 +9,21 @@ includes:
 vars:
   OS:
     sh: uname -s | tr '[:upper:]' '[:lower:]'
-  BUILD_HARNESS_ARCH:
+  ARCH:
     sh: uname -m | sed 's/x86_64/amd64/g'
-  BUILD_HARNESS_PATH:
-    sh: echo ${BUILD_HARNESS_PATH:-{{.ROOT_DIR}}}
+  PATH:
+    sh: |
+      if [ "{{.BUILD_HARNESS_PATH}}" != "" ]; then
+        echo {{.BUILD_HARNESS_PATH}}
+      else
+        echo {{.ROOT_DIR}}
+      fi
   BUILD_HARNESS_OS:
     sh: echo "{{.OS}}"
 tasks:
   default:
     cmds:
-      - cat {{.BUILD_HARNESS_PATH}}/logo.txt
+      - cat {{.PATH}}/logo.txt
       - task --list-all
     silent: true
     desc: "Usage description"
