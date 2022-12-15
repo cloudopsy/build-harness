@@ -83,8 +83,6 @@ tasks:
           MESSAGE="Initializing terraform configuration" task utils:print_info &&
             {{.TERRAFORM}} -chdir={{.ROOT_DIR}} init
           fi
-
-
   validate:
     deps:
       - init
@@ -93,7 +91,7 @@ tasks:
     summary: |
       # Validate terraform configuration
     cmds:
-      - MESSAGE="Validatie terraform configuration" task utils:print_info
+      - MESSAGE="Validate terraform configuration" task utils:print_info
       - |
         {{.TERRAFORM}} -chdir={{.ROOT_DIR}} validate
   tfsec:install:
