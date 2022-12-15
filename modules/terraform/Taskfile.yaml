@@ -4,31 +4,24 @@ env:
 vars:
   TMP: /tmp
   TERRAFORM: "{{.PATH}}/vendor/terraform"
-  TERRAFORM_VERSION:
-    sh: |
-      if [[ -z ${TERRAFORM_VERSION} ]]; then
-        curl -sL https://releases.hashicorp.com/terraform/index.json |  jq -r '.versions[].builds[].version' | egrep '[0-9]\.[0-9]{1,2}\.[0-9]{1,2}$' | tail -1
-      else
-        echo ${TERRAFORM_VERSION}
-      fi
-  TERRAFORM_URL: "https://releases.hashicorp.com/terraform/{{.TERRAFORM_VERSION}}/terraform_{{.TERRAFORM_VERSION}}_{{.OS}}_{{.ARCH}}.zip"
   TFSEC: "{{.PATH}}/vendor/tfsec"
   TERRASCAN: "{{.PATH}}/vendor/terrascan"
-  TERRASCAN_URL:
-    sh: |
-      if [ "{{.OS}}" == "darwin" ]; then
-        curl -L https://api.github.com/repos/tenable/terrascan/releases/latest 2>/dev/null| jq -r '.assets[].browser_download_url' | egrep 'Darwin' | tail -1
-      else
-        curl -L https://api.github.com/repos/tenable/terrascan/releases/latest 2>/dev/null| jq -r '.assets[].browser_download_url' | egrep 'Linux' | tail -1
-      fi
 
 tasks:
   install:
     cmds:
       - |
        if [ ! -x {{.TERRAFORM}} ]; then
-          echo "[+] Installing Terraform {{.TERRAFORM_VERSION}}..."
-          curl '-#' -fL -o {{.TMP}}/terraform.zip {{.TERRAFORM_URL}} 2>/dev/null
+          if [[ -z ${TERRAFORM_VERSION} ]]; then
+            TERRAFORM_VERSION=$(curl -sL https://releases.hashicorp.com/terraform/index.json |
+                jq -r '.versions[].builds[].version' |
+                egrep '[0-9]\.[0-9]{1,2}\.[0-9]{1,2}$' |
+                tail -1
+            )
+          fi
+          TERRAFORM_URL=https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_{{.OS}}_{{.ARCH}}.zip
+          echo "[+] Installing Terraform ${TERRAFORM_VERSION}..."
+          curl '-#' -fL -o {{.TMP}}/terraform.zip ${TERRAFORM_URL}
           unzip -q -d {{.TMP}}/ {{.TMP}}/terraform.zip
           mv {{.TMP}}/terraform {{.TERRAFORM}}
           rm -f {{.TMP}}/terraform.zip
@@ -115,7 +108,15 @@ tasks:
       - |
         if [ ! -x {{.TERRASCAN}} ]; then
           echo 	"[+] Installing terrascan..."
-          curl -L {{.TERRASCAN_URL}} > {{.TMP}}/terrascan.tar.gz 2>/dev/null
+          # capitalize {{.OS}}
+          os="$(echo {{.OS}} | awk '{for(i=1;i<=NF;i++){ $i=toupper(substr($i,1,1)) substr($i,2) }}1')"
+          TERRASCAN_URL=$(
+            curl -L https://api.github.com/repos/tenable/terrascan/releases/latest 2>/dev/null |
+            jq -r '.assets[].browser_download_url' |
+            egrep "${os}" |
+            tail -1
+          )
+          curl -L ${TERRASCAN_URL} > {{.TMP}}/terrascan.tar.gz 2>/dev/null
           tar -xOf {{.TMP}}/terrascan.tar.gz terrascan > {{.TERRASCAN}} && rm {{.TMP}}/terrascan.tar.gz
           chmod +x {{.TERRASCAN}}
         fi
