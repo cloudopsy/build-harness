@@ -45,7 +45,6 @@ tasks:
         msg: "unzip not installed"
   lint:
     deps:
-      - install
       - init
     desc: "Lint checks terraform code"
     silent: true
@@ -62,7 +61,6 @@ tasks:
         fi
   fmt:
     deps:
-      - install
       - init
     desc: "Formats terraform code"
     silent: true
@@ -80,18 +78,22 @@ tasks:
     summary: |
       # Initialize terraform configuration
     cmds:
-      - test -d {{.ROOT_DIR}}/.terraform || {{.TERRAFORM}} MESSAGE="Initialize terraform configuration" task utils:print_info && terraform -chdir={{.ROOT_DIR}} init
+      - |
+          if [ ! -d {{.ROOT_DIR}}/.terraform ]; then
+          MESSAGE="Initializing terraform configuration" task utils:print_info &&
+            {{.TERRAFORM}} -chdir={{.ROOT_DIR}} init
+          fi
+
 
   validate:
     deps:
-      - install
       - init
     desc: "Validate terraform configuration"
     silent: true
     summary: |
       # Validate terraform configuration
     cmds:
-      - MESSAGE="Validationg terraform configuration" task utils:print_info
+      - MESSAGE="Validatie terraform configuration" task utils:print_info
       - |
         {{.TERRAFORM}} -chdir={{.ROOT_DIR}} validate
   tfsec:install:
