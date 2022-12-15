@@ -21,7 +21,11 @@ vars:
 tasks:
   default:
     cmds:
+      - task: help
+
+  help:
+    cmds:
       - cat {{.PATH}}/logo.txt
-      - task --list-all
+      - task --list
     silent: true
-    desc: "Usage description"
+    desc: "Help"
