@@ -18,8 +18,8 @@ vars:
       else
         echo {{.ROOT_DIR}}
       fi
-  BUILD_HARNESS_OS:
-    sh: echo "{{.OS}}"
+  # BUILD_HARNESS_OS:
+  #   sh: echo "{{.OS}}"
 tasks:
   default:
     cmds:
