@@ -6,6 +6,9 @@ includes:
   terraform:
     taskfile: ./modules/terraform/Taskfile.yaml
     optional: true
+  utils:
+    taskfile: ./modules/utils/Taskfile.yaml
+    optional: true
 vars:
   OS:
     sh: uname -s | tr '[:upper:]' '[:lower:]'
@@ -22,10 +25,9 @@ tasks:
   default:
     cmds:
       - task: help
-
   help:
     cmds:
       - cat {{.PATH}}/logo.txt
       - task --list
     silent: true
-    desc: "Help"
+    desc: "Build harness help"

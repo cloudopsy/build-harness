@@ -1,0 +1,15 @@
+version: '3'
+vars:
+  CURRENT_TIME:
+    sh: date +'%H:%m:%S'
+tasks:
+  print_info:
+    cmds:
+      - echo "[INFO | {{.CURRENT_TIME}}] {{.MESSAGE}}"
+    silent: true
+  print_error:
+    cmds:
+      - echo "[ERROR] {{.MESSAGE}}"
+  print_debug:
+    cmds:
+      - echo "[DEBUG] {{.MESSAGE}}"

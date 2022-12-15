@@ -8,6 +8,10 @@ vars:
   TERRASCAN: "{{.PATH}}/vendor/terrascan"
 
 tasks:
+  cleanup:
+    cmds:
+      - rm -f {{.FILE}}
+    silent: true
   install:
     cmds:
       - |
@@ -20,12 +24,14 @@ tasks:
             )
           fi
           TERRAFORM_URL=https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_{{.OS}}_{{.ARCH}}.zip
-          echo "[+] Installing Terraform ${TERRAFORM_VERSION}..."
+          MESSAGE="Installing Terraform ${TERRAFORM_VERSION}" task utils:print_info
           curl '-#' -fL -o {{.TMP}}/terraform.zip ${TERRAFORM_URL}
           unzip -q -d {{.TMP}}/ {{.TMP}}/terraform.zip
           mv {{.TMP}}/terraform {{.TERRAFORM}}
-          rm -f {{.TMP}}/terraform.zip
        fi
+      - defer: {
+          task: cleanup, vars: {FILE: "{{.TMP}}/terraform.zip"}
+        }
     summary: |
       # Install terraform binary
     silent: true
@@ -40,6 +46,7 @@ tasks:
   lint:
     deps:
       - install
+      - init
     desc: "Lint checks terraform code"
     silent: true
     summary: |
@@ -56,24 +63,37 @@ tasks:
   fmt:
     deps:
       - install
+      - init
     desc: "Formats terraform code"
     silent: true
     summary: |
       # Formats terraform code
     cmds:
+      - MESSAGE="Formatting terraform code" task utils:print_info
       - |
-        echo "[+] Formatting terraform code"
-        {{.TERRAFORM}} fmt --recursive .
+        {{.TERRAFORM}} -chdir={{.ROOT_DIR}} fmt --recursive .
+  init:
+    deps:
+      - install
+    desc: "Initialize terraform configuration"
+    silent: true
+    summary: |
+      # Initialize terraform configuration
+    cmds:
+      - test -d {{.ROOT_DIR}}/.terraform || {{.TERRAFORM}} MESSAGE="Initialize terraform configuration" task utils:print_info && terraform -chdir={{.ROOT_DIR}} init
+
   validate:
     deps:
       - install
+      - init
     desc: "Validate terraform configuration"
     silent: true
     summary: |
       # Validate terraform configuration
     cmds:
+      - MESSAGE="Validationg terraform configuration" task utils:print_info
       - |
-        {{.TERRAFORM}} validate
+        {{.TERRAFORM}} -chdir={{.ROOT_DIR}} validate
   tfsec:install:
     desc: "Use tfsec to security scan terraform code"
     silent: true
@@ -82,7 +102,7 @@ tasks:
     cmds:
       - |
         if [ ! -x {{.TFSEC}} ]; then
-          echo 	"[+] Installing tfsec..."
+          MESSAGE="Installing tfsec" task utils:print_info
           GOBIN={{.PATH}}/vendor go install github.com/aquasecurity/tfsec/cmd/tfsec@latest
         fi
     preconditions:
@@ -96,8 +116,8 @@ tasks:
     summary: |
       # Scans terraform code for security issues
     cmds:
+      - MESSAGE="Running tfsec" task utils:print_info
       - |
-        echo 	"[+] Running tfsec..."
         {{.TFSEC}} {{.ROOT_DIR}}
   terrascan:install:
     desc: "Install terrascan"
@@ -107,7 +127,7 @@ tasks:
     cmds:
       - |
         if [ ! -x {{.TERRASCAN}} ]; then
-          echo 	"[+] Installing terrascan..."
+          MESSAGE="Installing terrascan" task utils:print_info
           # capitalize {{.OS}}
           os="$(echo {{.OS}} | awk '{for(i=1;i<=NF;i++){ $i=toupper(substr($i,1,1)) substr($i,2) }}1')"
           TERRASCAN_URL=$(
@@ -128,6 +148,6 @@ tasks:
     summary: |
       # Run terrascan scan
     cmds:
+      - MESSAGE="Running terrascan" task utils:print_info
       - |
-        echo 	"[+] Running terrascan..."
         {{.TERRASCAN}} scan -i terraform -d {{.ROOT_DIR}} --non-recursive
