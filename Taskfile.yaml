@@ -1,5 +1,8 @@
 version: '3'
 includes:
+  packages:
+    taskfile: ./modules/packages/Taskfile.yaml
+    optional: true
   readme:
     taskfile: ./modules/readme/Taskfile.yaml
     optional: true

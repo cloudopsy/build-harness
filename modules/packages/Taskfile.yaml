@@ -1,0 +1,57 @@
+
+version: '3'
+
+vars:
+  TMP: /tmp
+  GOMPLATE: "{{.PATH}}/vendor/gomplate"
+  TERRAFORM: "{{.PATH}}/vendor/terraform"
+  TFSEC: "{{.PATH}}/vendor/tfsec"
+  TERRASCAN: "{{.PATH}}/vendor/terrascan"
+
+tasks:
+  cleanup:
+    cmds:
+      - rm -f {{.FILE}}
+    silent: true
+  gomplate:install:
+    desc: "Install gomplate"
+    silent: true
+    summary: |
+      # Install gomplate
+    cmds:
+      - |
+        if [ ! -x {{.GOMPLATE}} ]; then
+          MESSAGE="Installing gomplate" task utils:print_info
+          GOBIN={{.PATH}}/vendor go install github.com/hairyhenderson/gomplate/v3/cmd/gomplate@latest
+        fi
+  terraform:install:
+    cmds:
+      - |
+       if [ ! -x {{.TERRAFORM}} ]; then
+          if [[ -z ${TERRAFORM_VERSION} ]]; then
+            TERRAFORM_VERSION=$(curl -sL https://releases.hashicorp.com/terraform/index.json |
+                jq -r '.versions[].builds[].version' |
+                egrep '[0-9]\.[0-9]{1,2}\.[0-9]{1,2}$' |
+                tail -1
+            )
+          fi
+          TERRAFORM_URL=https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_{{.OS}}_{{.ARCH}}.zip
+          MESSAGE="Installing Terraform ${TERRAFORM_VERSION}" task utils:print_info
+          curl '-#' -fL -o {{.TMP}}/terraform.zip ${TERRAFORM_URL}
+          unzip -q -d {{.TMP}}/ {{.TMP}}/terraform.zip
+          mv {{.TMP}}/terraform {{.TERRAFORM}}
+       fi
+      - defer: {
+          task: cleanup, vars: {FILE: "{{.TMP}}/terraform.zip"}
+        }
+    summary: |
+      # Install terraform binary
+    silent: true
+    desc: "Install terraform binary"
+    preconditions:
+      - sh: "test -f `which curl`"
+        msg: "curl not installed"
+      - sh: "test -f `which jq`"
+        msg: "jq not installed"
+      - sh: "test -f `which unzip`"
+        msg: "unzip not installed"
