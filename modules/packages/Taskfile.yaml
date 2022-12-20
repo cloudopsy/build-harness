@@ -4,6 +4,8 @@ version: '3'
 vars:
   TMP: /tmp
   GOMPLATE: "{{.PATH}}/vendor/gomplate"
+  PYTHON: "{{.PATH}}/vendor/python/bin/python"
+  PYTHON_PIP: "{{.PATH}}/vendor/python/bin/pip"
   TERRAFORM: "{{.PATH}}/vendor/terraform"
   TFSEC: "{{.PATH}}/vendor/tfsec"
   TERRASCAN: "{{.PATH}}/vendor/terrascan"
@@ -13,6 +15,43 @@ tasks:
     cmds:
       - rm -f {{.FILE}}
     silent: true
+  python:install:
+    desc: "Install python venv"
+    silent: true
+    summary: |
+      # Install python venv
+    cmds:
+      - |
+        if [ ! -x {{.PYTHON}} ]; then
+          MESSAGE="Installing python venv" task utils:print_info
+          python3 -m venv {{.PATH}}/vendor/python
+        fi
+  python:pip:install:
+    desc: "Install python pip package"
+    deps:
+      - task: python:install
+    silent: true
+    summary: |
+      # Install python pip package
+    cmds:
+      - |
+          if [ {{.PYTHON_PACKAGE}} != "" ]; then
+            MESSAGE="Installing python {{.PYTHON_PACKAGE}} package" task utils:print_info
+            {{.PYTHON_PIP}} install {{.PYTHON_PACKAGE}}
+          fi
+  python:run:
+    desc: "Run python script"
+    deps:
+      - task: python:install
+    silent: true
+    summary: |
+      # Run python script
+    cmds:
+      - |
+          if [ {{.SCRIPT}} != "" ]; then
+            MESSAGE="Running python script {{.SCRIPT}}" task utils:print_info
+            {{.PYTHON}} {{.SCRIPT}}
+          fi
   gomplate:install:
     desc: "Install gomplate"
     silent: true

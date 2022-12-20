@@ -16,7 +16,19 @@ tasks:
   build:
     desc: "Build README"
     silent: true
+    deps:
+      - task: install
     cmds:
        - |
          {{.GOMPLATE}} --file {{.README_TEMPLATE_FILE}}  --out {{.README_FILE}}
        - MESSAGE="Generated {{.README_FILE}} from {{.README_TEMPLATE_FILE}}" task utils:print_info
+  build:referances:
+    desc: "Build README referances"
+    silent: true
+    cmds:
+      - |
+        task packages:python:pip:install PYTHON_PACKAGE=requests
+        task packages:python:pip:install PYTHON_PACKAGE=PyGithub
+        task packages:python:pip:install PYTHON_PACKAGE=iteration_utilities
+        task packages:python:pip:install PYTHON_PACKAGE=ruamel.yaml
+        task packages:python:run SCRIPT="{{.PATH}}/bin/generate_related_referances.py"
